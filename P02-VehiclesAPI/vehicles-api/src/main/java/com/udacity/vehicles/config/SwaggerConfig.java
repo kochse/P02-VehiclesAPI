@@ -2,7 +2,8 @@ package com.udacity.vehicles.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
@@ -13,6 +14,7 @@ import springfox.documentation.spring.web.plugins.Docket;
 import java.util.Collections;
 
 @Configuration
+@Controller
 public class SwaggerConfig {
     @Bean
     public Docket api() {
@@ -32,6 +34,11 @@ public class SwaggerConfig {
                 "",
                 new Contact("Sebastian Koch", "www.se2c.de", "kochsebastian@gmail.com"),
                 "License of API", "http://www.se2c.de/license", Collections.emptyList());
+    }
+
+    @RequestMapping("/swagger-ui.html")
+    public String doc() {
+        return "redirect:/swagger-ui/index.html";
     }
 
 }
