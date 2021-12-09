@@ -79,7 +79,6 @@ class CarController {
      */
     @PostMapping
     ResponseEntity<?> post(@Valid @RequestBody Car car) throws URISyntaxException {
-        System.out.println("Post");
         Car savedCar = carService.save(car);
         Resource<Car> resource = assembler.toResource(savedCar);
         return ResponseEntity.created(new URI(resource.getId().expand().getHref())).body(resource);
@@ -93,10 +92,14 @@ class CarController {
      */
     @PutMapping("/{id}")
     ResponseEntity<?> put(@PathVariable Long id, @Valid @RequestBody Car car) {
-        System.out.println("Put");
         try {
             Car foundCar = carService.findById(id);
-            foundCar.setId(id);
+
+            foundCar.setDetails(car.getDetails());
+            foundCar.setCondition(car.getCondition());
+            foundCar.setLocation(car.getLocation());
+            foundCar.setPrice(car.getPrice());
+
             Car savedCard = carService.save(foundCar);
             Resource<Car> resource = assembler.toResource(savedCard);
             return ResponseEntity.ok(resource);
