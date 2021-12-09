@@ -42,6 +42,22 @@ class CarController {
     }
 
     /**
+     * Gets information of a specific car by ID.
+     * @param id the id number of the given vehicle
+     * @return all information for the requested vehicle
+     */
+    @GetMapping("/{id}")
+    Resource<Car> get(@PathVariable Long id) {
+        System.out.println("get " + id);
+        try {
+            Car car = carService.findById(id);
+            return assembler.toResource(car);
+        } catch (CarNotFoundException ex) {
+            return null;
+        }
+    }
+
+    /**
      * Creates a list to store any vehicles.
      * @return list of vehicles
      */
@@ -53,20 +69,7 @@ class CarController {
                 linkTo(methodOn(CarController.class).list()).withSelfRel());
     }
 
-    /**
-     * Gets information of a specific car by ID.
-     * @param id the id number of the given vehicle
-     * @return all information for the requested vehicle
-     */
-    @GetMapping("/{id}")
-    Resource<Car> get(@PathVariable Long id) {
-        try {
-            Car car = carService.findById(id);
-            return assembler.toResource(car);
-        } catch (CarNotFoundException ex) {
-            return null;
-        }
-    }
+
 
     /**
      * Posts information to create a new vehicle in the system.
@@ -76,6 +79,7 @@ class CarController {
      */
     @PostMapping
     ResponseEntity<?> post(@Valid @RequestBody Car car) throws URISyntaxException {
+        System.out.println("Post");
         Car savedCar = carService.save(car);
         Resource<Car> resource = assembler.toResource(savedCar);
         return ResponseEntity.created(new URI(resource.getId().expand().getHref())).body(resource);
@@ -89,6 +93,7 @@ class CarController {
      */
     @PutMapping("/{id}")
     ResponseEntity<?> put(@PathVariable Long id, @Valid @RequestBody Car car) {
+        System.out.println("Put");
         try {
             Car foundCar = carService.findById(id);
             foundCar.setId(id);

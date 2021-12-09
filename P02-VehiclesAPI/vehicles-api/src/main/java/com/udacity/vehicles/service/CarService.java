@@ -1,7 +1,10 @@
 package com.udacity.vehicles.service;
 
 import com.udacity.vehicles.client.maps.Address;
+import com.udacity.vehicles.client.maps.MapsClient;
 import com.udacity.vehicles.client.prices.Price;
+import com.udacity.vehicles.client.prices.PriceClient;
+import com.udacity.vehicles.domain.Location;
 import com.udacity.vehicles.domain.car.Car;
 import com.udacity.vehicles.domain.car.CarRepository;
 import java.util.List;
@@ -12,6 +15,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import javax.persistence.EntityNotFoundException;
+
 /**
  * Implements the car service create, read, update or delete
  * information about vehicles, as well as gather related
@@ -21,11 +26,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class CarService {
 
     private final CarRepository repository;
-    private final WebClient maps;
-    private final WebClient pricing;
+    private final MapsClient maps;
+    private final PriceClient pricing;
     private final ModelMapper mapper;
 
-    public CarService(CarRepository repository, WebClient maps, WebClient pricing, ModelMapper mapper) {
+    public CarService(CarRepository repository, MapsClient maps, PriceClient pricing, ModelMapper mapper) {
         this.repository = repository;
         this.maps = maps;
         this.pricing = pricing;
@@ -46,40 +51,18 @@ public class CarService {
      * @return the requested car's information, including location and price
      */
     public Car findById(Long id) throws CarNotFoundException {
-
+        System.out.println("findById " + id);
         Optional<Car> carOptional = repository.findById(id);
         if (carOptional.isEmpty()) {
             throw new CarNotFoundException();
         }
         Car car = carOptional.get();
 
-        Price price = pricing
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("services/price/")
-                        .queryParam("vehicleId", car.getId())
-                        .build()
-                )
-                .retrieve().bodyToMono(Price.class).block();
+        String price = pricing.getPrice(id);
+        car.setPrice(price);
 
-        car.setPrice(String.format("%s %s", price.getCurrency(), price.getPrice()));
-
-        Address address = maps
-                .get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/maps/")
-                        .queryParam("lat", car.getLocation().getLat())
-                        .queryParam("lon", car.getLocation().getLon())
-                        .build()
-                )
-                .retrieve().bodyToMono(Address.class).block();
-        mapper.map(Objects.requireNonNull(address), car.getLocation());
-
-        car.getLocation().setAddress(address.getAddress());
-        car.getLocation().setCity(address.getCity());
-        car.getLocation().setAddress(address.getAddress());
-        car.getLocation().setZip(address.getZip());
-        car.getLocation().setState(address.getState());
+        Location location = maps.getAddress(car.getLocation());
+        car.setLocation(location);
 
         return car;
     }
@@ -90,15 +73,16 @@ public class CarService {
      * @return the new/updated car is stored in the repository
      */
     public Car save(Car car) {
-        if (car.getId() != null) {
-            return repository.findById(car.getId())
-                    .map(carToBeUpdated -> {
-                        carToBeUpdated.setDetails(car.getDetails());
-                        carToBeUpdated.setLocation(car.getLocation());
-                        return repository.save(carToBeUpdated);
-                    }).orElseThrow(CarNotFoundException::new);
-        }
-
+        Optional<Car> carOptional = Optional.empty();
+        try {
+            carOptional = repository.findById(car.getId());
+            if (carOptional.isPresent()) {
+                Car carToBeUpdated = carOptional.get();
+                carToBeUpdated.setDetails(car.getDetails());
+                carToBeUpdated.setLocation(car.getLocation());
+                return repository.save(carToBeUpdated);
+            }
+        } catch (EntityNotFoundException ex) {};
         return repository.save(car);
     }
 
