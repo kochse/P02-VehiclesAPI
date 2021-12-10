@@ -73,16 +73,16 @@ public class CarService {
      * @return the new/updated car is stored in the repository
      */
     public Car save(Car car) {
-        Optional<Car> carOptional = Optional.empty();
-        try {
-            carOptional = repository.findById(car.getId());
-            if (carOptional.isPresent()) {
-                Car carToBeUpdated = carOptional.get();
-                carToBeUpdated.setDetails(car.getDetails());
-                carToBeUpdated.setLocation(car.getLocation());
-                return repository.save(carToBeUpdated);
-            }
-        } catch (EntityNotFoundException ex) {};
+        if (car.getId() != null) {
+            return repository.findById(car.getId())
+                    .map(carToBeUpdated -> {
+                        carToBeUpdated.setDetails(car.getDetails());
+                        carToBeUpdated.setLocation(car.getLocation());
+                        carToBeUpdated.setCondition(car.getCondition());
+                        return repository.save(carToBeUpdated);
+                    }).orElseThrow(CarNotFoundException::new);
+        }
+
         return repository.save(car);
     }
 
